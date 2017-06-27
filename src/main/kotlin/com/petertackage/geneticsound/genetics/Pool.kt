@@ -49,7 +49,11 @@ class Pool(val context: com.petertackage.geneticsound.Context) {
 
     fun randomFrequency(): Float {
         // Max frequency produced is limited by Nyquist frequency
-        return (random.nextFloat() * (context.frameRate / 2.0F)) + 1 // min freq is 1 Hz
+        //  return (random.nextFloat() * (context.frameRate / 2.0F)) + 1 // min freq is 1 Hz
+
+        val octave = random.nextInt(3)
+        val note = Note.values()[random.nextInt(Note.values().lastIndex)]
+        return (note.frequency * Math.pow(2.0, octave.toDouble())).toFloat()
     }
 
 }

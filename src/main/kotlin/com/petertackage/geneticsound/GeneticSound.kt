@@ -4,18 +4,19 @@ import com.petertackage.geneticsound.genetics.Clip
 import com.petertackage.geneticsound.genetics.ClipType
 import com.petertackage.geneticsound.genetics.Individual
 import com.petertackage.geneticsound.genetics.Pool
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import javax.sound.sampled.AudioFileFormat
 import javax.sound.sampled.AudioFormat
+import javax.sound.sampled.AudioInputStream
 import javax.sound.sampled.AudioSystem
-
 
 fun main(args: Array<String>) {
     GeneticSound(filename = "/Users/ptac/code/genetic-sound/185347__lemoncreme__symphony-sounds_MONO.wav",
+            populationCount = 40,
             geneCount = 50,
-            populationCount = 20,
             supportedClipTypes = arrayOf(ClipType.SINUSOID),
             mutationProbability = 0.01F,
             fitnessFunction = DiffFitnessFunction(),
@@ -92,24 +93,51 @@ class GeneticSound(val filename: String,
                 supportedClipTypes))
 
         // New random population
-        var population: List<Individual<Clip>> = measure("Building population") { pool.newPopulation() }
-        var fitness = Double.MAX_VALUE
+        var population: List<Individual<Clip>> = pool.newPopulation()
+        var fitness = Long.MAX_VALUE
         var generation = 0
 
-        val audioCanvas: ShortArray = measure("initializing") {
-            ShortArray(audioFileFormat.frameLength).apply { fill(0) }
-        }
+        val audioCanvas: ShortArray = ShortArray(audioFileFormat.frameLength).apply { fill(0) }
 
         do {
-            population = measure("Evaluating fitness") { evaluateFitness(targetShortArray, audioCanvas, population) }
-            println("${generation}, ${population.first().fitnesss}")
 
-            // TODO Save the audioCanvas to file every nth time (perf. reasons)
+            // Assigns the fitness to each individual
+            assignFitness(targetShortArray, audioCanvas, population)
+            println("${generation}, ${population.first().fitness}")
 
-            population = measure("Building next generation") {
-                buildNextGeneration(population, pool) // mutates
+
+            if (generation % 10 == 0) {
+
+                val buffer = ByteBuffer.allocate(audioCanvas.size * 2)
+                buffer.asShortBuffer().put(audioCanvas)
+                val bytes = buffer.array()
+                //val bytes = audioBytes
+
+                val outputAudioFormat = AudioFormat(
+                        audioFileFormat.format.frameRate,
+                        audioFileFormat.format.sampleSizeInBits,
+                        1,
+                        true,
+                        true)
+                val byteArrayInputStream = ByteArrayInputStream(bytes)
+
+                val audioInputStream = AudioInputStream(
+                        byteArrayInputStream,
+                        outputAudioFormat,
+                        (bytes.size / 2).toLong())
+
+                AudioSystem.write(
+                        audioInputStream,
+                        AudioFileFormat.Type.WAVE,
+                        File(filename.split(".").first() + (generation % 20) + ".wav"))
             }
+
+            // Change the population
+            population = buildNextGeneration(population.sortedBy { it.fitness }, pool)
             generation++
+
+            fitness = population.first().fitness
+
 
         } while (fitness > 0)
 
@@ -119,7 +147,7 @@ class GeneticSound(val filename: String,
         val nextGeneration = mutableListOf<Individual<Clip>>()
 
         // elitism
-        nextGeneration.add(population.first())
+        //  nextGeneration.add(population.first())
 
         while (nextGeneration.size < population.size) {
             val one = selector.select(population)
@@ -129,28 +157,26 @@ class GeneticSound(val filename: String,
         return nextGeneration
     }
 
-    private fun evaluateFitness(target: ShortArray,
-                                audioCanvas: ShortArray,
-                                population: List<Individual<Clip>>): List<Individual<Clip>> {
+    private fun assignFitness(target: ShortArray,
+                              audioCanvas: ShortArray,
+                              population: List<Individual<Clip>>) {
         population.forEach { individual ->
             expressIndividual(audioCanvas, individual)
-            individual.fitnesss = fitnessFunction.compare(target, audioCanvas)
+            individual.fitness = fitnessFunction.compare(target, audioCanvas)
         }
-        return population.sortedBy { individual -> individual.fitnesss }
     }
 
     private fun expressIndividual(audioCanvas: ShortArray, individual: Individual<Clip>) {
         individual.dna.forEachIndexed { clipIndex, clip ->
             clip.waveform().forEachIndexed { frameIndex, clipShort ->
-                val merged: Short = mergeAudio(audioCanvas, frameIndex, clipShort, clipIndex)
+                val merged: Short = mergeAudio(audioCanvas, frameIndex, clipShort)
                 audioCanvas[frameIndex] = merged // update audio canvas
             }
         }
     }
 
-    private fun mergeAudio(audioCanvas: ShortArray, frameIndex: Int, clipShort: Short, clipIndex: Int): Short {
-        val total: Int = (audioCanvas[frameIndex] + clipShort) // use Int to give 32 bits, which is 16 bits more headroom than Short
-        return (total shr 16).toShort() // normalize the value back from 32 bits to 16 bits.
+    private fun mergeAudio(audioCanvas: ShortArray, frameIndex: Int, clipShort: Short): Short {
+        return ((audioCanvas[frameIndex].toInt() + clipShort.toInt()) / 2).toShort() // use Int to give 32 bits, which is 16 bits more headroom than Short
     }
 
 }
