@@ -1,9 +1,6 @@
 package com.petertackage.geneticsound
 
-import com.petertackage.geneticsound.genetics.Clip
-import com.petertackage.geneticsound.genetics.ClipType
-import com.petertackage.geneticsound.genetics.Individual
-import com.petertackage.geneticsound.genetics.Pool
+import com.petertackage.geneticsound.genetics.*
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.nio.ByteBuffer
@@ -94,7 +91,9 @@ class GeneticSound(val filename: String,
 
         // New random population
         var population: List<Individual<Clip>> = pool.newPopulation()
+
         var fitness = Long.MAX_VALUE
+        var bestFitness = fitness
         var generation = 0
 
         val audioCanvas: ShortArray = ShortArray(audioFileFormat.frameLength).apply { fill(0) }
@@ -105,8 +104,8 @@ class GeneticSound(val filename: String,
             assignFitness(targetShortArray, audioCanvas, population)
             println("${generation}, ${population.first().fitness}")
 
-
-            if (generation % 10 == 0) {
+            if (fitness < bestFitness) {
+                bestFitness = fitness
 
                 val buffer = ByteBuffer.allocate(audioCanvas.size * 2)
                 buffer.asShortBuffer().put(audioCanvas)
@@ -129,10 +128,11 @@ class GeneticSound(val filename: String,
                 AudioSystem.write(
                         audioInputStream,
                         AudioFileFormat.Type.WAVE,
-                        File(filename.split(".").first() + (generation % 20) + ".wav"))
+                        File(filename.split(".").first() + "$generation.$fitness.wav"))
             }
 
             // Change the population
+            // TODO This needs to have a copy of
             population = buildNextGeneration(population.sortedBy { it.fitness }, pool)
             generation++
 
@@ -147,7 +147,7 @@ class GeneticSound(val filename: String,
         val nextGeneration = mutableListOf<Individual<Clip>>()
 
         // elitism
-        //  nextGeneration.add(population.first())
+        nextGeneration.add(population.first())
 
         while (nextGeneration.size < population.size) {
             val one = selector.select(population)

@@ -28,6 +28,12 @@ abstract class Clip(var frameRange: IntRange,
     abstract fun waveform(): ShortArray
 }
 
+class PredefinedClip(val data : ShortArray) : Clip(0..0, 0.0F, 0) {
+    override fun waveform(): ShortArray {
+        return data
+    }
+}
+
 class Noise(frameRange: IntRange,
             frameRate: Float,
             peakAmplitude: Short) : Clip(frameRange, frameRate, peakAmplitude) {
