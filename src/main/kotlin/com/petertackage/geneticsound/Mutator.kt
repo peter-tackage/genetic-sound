@@ -11,7 +11,6 @@ class Mutator {
 
     fun mutate(gene: Clip, probability: Float, pool: Pool): Clip {
         if (random.nextFloat() > probability) return gene
-
         return when (gene) {
             is Sinusoid -> mutateSinusoid(gene, pool)
             else -> gene // TODO Add support for mutating other types
@@ -19,12 +18,12 @@ class Mutator {
     }
 
     private fun mutateSinusoid(gene: Sinusoid, pool: Pool): Clip {
-            return when (random.nextInt(3)) {
-                0 -> gene.copy(frequency = pool.randomFrequency())
-                1 -> gene.copy(frameRange = pool.randomFrameRange())
-                2 -> gene.copy(peakAmplitude= pool.randomPeakAmplitude())
-                else -> throw Exception("Got bad random")
-            }
+        return when (random.nextInt(3)) {
+            0 -> gene.copy(frequency = pool.randomFrequency())
+            1 -> gene.copy(frameRange = pool.randomFrameRange())
+            2 -> gene.copy(peakAmplitude = pool.randomPeakAmplitude())
+            else -> throw Exception("Got bad random")
+        }
     }
 
 }
