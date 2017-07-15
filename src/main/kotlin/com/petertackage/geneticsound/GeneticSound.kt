@@ -14,9 +14,9 @@ import javax.sound.sampled.AudioInputStream
 import javax.sound.sampled.AudioSystem
 
 fun main(args: Array<String>) {
-    GeneticSound(filename = "/Users/ptac/code/genetic-sound/185347__lemoncreme__symphony-sounds-MONO-8k.wav",
-            populationCount = 40,
-            geneCount = 50,
+    GeneticSound(filename = "/Users/ptac/code/genetic-sound/mono-short.wav",
+            populationCount = 100,
+            geneCount = 100,
             supportedClipTypes = arrayOf(ClipType.SINUSOID),
             mutationProbability = 0.01F,
             fitnessFunction = DiffFitnessFunction(),
@@ -164,9 +164,11 @@ class GeneticSound(val filename: String,
     private fun renderAndAssignFitness(target: ShortArray,
                                        audioCanvas: ShortArray,
                                        population: List<Individual<Clip>>) {
-        population.forEach { individual ->
-            expressIndividual(audioCanvas, individual)
-            individual.fitness = fitnessFunction.compare(target, audioCanvas)
+        measure("renderAndAssignFitness, target: ${target.size}, audioCanvas: ${audioCanvas.size}, population: ${population.size}") {
+            population.forEach { individual ->
+                expressIndividual(audioCanvas, individual)
+                individual.fitness = fitnessFunction.compare(target, audioCanvas)
+            }
         }
     }
 
@@ -182,7 +184,7 @@ class GeneticSound(val filename: String,
 
     private fun mergeAudio(audioCanvas: ShortArray, audioCanvasIndex: Int, clipShort: Short): Short {
         // Average of existing merged values
-        return ((audioCanvas[audioCanvasIndex].toInt() + clipShort.toInt()) shr 1).toShort() // use Int to give 32 bits, which is 16 bits more headroom than Short
+        return ((audioCanvas[audioCanvasIndex].toInt() + clipShort.toInt()) / 2).toShort() // use Int to give 32 bits, which is 16 bits more headroom than Short
     }
 
 }
