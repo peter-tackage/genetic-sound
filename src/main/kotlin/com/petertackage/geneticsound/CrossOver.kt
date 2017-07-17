@@ -10,16 +10,14 @@ class CrossOver {
     private val random = Random()
 
     fun perform(pair: Pair<Individual<Clip>, Individual<Clip>>, mutator: Mutator, mutationProbability: Float, pool: Pool): Individual<Clip> {
-        val genes = mutableListOf<Clip>()
-        (pair.first.dna.indices).forEach { i ->
+        return (pair.first.dna.indices).map { i ->
             // Either take from first or second parent
             // Copy the genes so that mutations don't affect parent!
             if (random.nextDouble() > .5) {
-                genes.add(mutator.mutate(pair.first.dna[i], mutationProbability, pool))
+                mutator.mutate(pair.first.dna[i], mutationProbability, pool)
             } else {
-                genes.add(mutator.mutate(pair.second.dna[i], mutationProbability, pool))
+                mutator.mutate(pair.second.dna[i], mutationProbability, pool)
             }
-        }
-        return Individual(genes)
+        }.let { Individual(it) }
     }
 }

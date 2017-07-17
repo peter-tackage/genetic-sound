@@ -97,7 +97,7 @@ class GeneticSound(val filename: String,
 
         var generation = 0
 
-        do {
+        do { 
 
             val audioCanvas: ShortArray = ShortArray(audioFileFormat.frameLength).apply { fill(0) }
 
