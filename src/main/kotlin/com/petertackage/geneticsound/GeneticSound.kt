@@ -14,7 +14,7 @@ import javax.sound.sampled.AudioInputStream
 import javax.sound.sampled.AudioSystem
 
 fun main(args: Array<String>) {
-    GeneticSound(filename = "/Users/ptac/code/genetic-sound/mono-short.wav",
+    GeneticSound(filename = "/Users/ptac/code/genetic-sound/audio/185347__lemoncreme__symphony-sounds-mono-shortened.wav",
             populationCount = 100,
             geneCount = 100,
             supportedClipTypes = arrayOf(ClipType.SINUSOID),
@@ -97,9 +97,10 @@ class GeneticSound(val filename: String,
 
         var generation = 0
 
-        val audioCanvas: ShortArray = ShortArray(audioFileFormat.frameLength).apply { fill(0) }
-
         do {
+
+            val audioCanvas: ShortArray = ShortArray(audioFileFormat.frameLength).apply { fill(0) }
+
             // Assigns the fitness to each individual
             measure("Assign and Render ") {
                 renderAndAssignFitness(targetShortArray, audioCanvas, population)
