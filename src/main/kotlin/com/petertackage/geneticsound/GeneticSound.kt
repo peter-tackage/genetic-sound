@@ -14,7 +14,7 @@ import javax.sound.sampled.AudioInputStream
 import javax.sound.sampled.AudioSystem
 
 fun main(args: Array<String>) {
-    GeneticSound(filename = "/Users/ptac/code/genetic-sound/audio/185347__lemoncreme__symphony-sounds-mono-shortened.wav",
+    GeneticSound(filename = args[0],
             populationCount = 100,
             geneCount = 100,
             supportedClipTypes = arrayOf(ClipType.SINUSOID),
