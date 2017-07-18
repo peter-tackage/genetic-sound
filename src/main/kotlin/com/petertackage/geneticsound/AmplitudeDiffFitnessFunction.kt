@@ -1,6 +1,6 @@
 package com.petertackage.geneticsound
 
-class DiffFitnessFunction : FitnessFunction {
+class AmplitudeDiffFitnessFunction : FitnessFunction {
     override fun compare(target: ShortArray, proposed: ShortArray): Long {
         return proposed.mapIndexed { index, proposedFrame -> calculateDiff(target[index], proposedFrame).toLong() }
                 .sumExact()

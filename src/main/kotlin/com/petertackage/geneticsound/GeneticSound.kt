@@ -21,7 +21,7 @@ fun main(args: Array<String>) {
             geneCount = 100,
             supportedClipTypes = arrayOf(ClipType.SINUSOID),
             mutationProbability = 0.01F,
-            fitnessFunction = DiffFitnessFunction(),
+            fitnessFunction = AmplitudeDiffFitnessFunction(),
             selector = RankSelector(bias = 0.4),
             mutator = Mutator(),
             crossOver = ZipperCrossOver())
@@ -117,8 +117,6 @@ class GeneticSound(val filename: String,
             println("$generation ${best} ${allTimeBest} ${populationFitness.avg()} ${populationFitness.sd()} $duration")
 
             writeToFile(audioCanvas, audioFileFormat)
-
-            println()
 
             // Change the population
             population = buildNextGeneration(population, pool)
