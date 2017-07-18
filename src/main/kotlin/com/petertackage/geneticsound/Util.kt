@@ -7,3 +7,10 @@ fun <T> measure(tag: String, func: () -> T): T {
     println("$tag took $diff ms")
     return t
 }
+
+fun measure(tag: String, action: () -> Unit): Long {
+    val start: Long = System.currentTimeMillis()
+    action()
+    val diff: Long = System.currentTimeMillis() - start
+    return diff
+}

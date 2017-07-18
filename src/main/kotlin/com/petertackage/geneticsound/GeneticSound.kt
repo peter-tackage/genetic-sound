@@ -4,6 +4,7 @@ import com.petertackage.geneticsound.genetics.Clip
 import com.petertackage.geneticsound.genetics.ClipType
 import com.petertackage.geneticsound.genetics.Individual
 import com.petertackage.geneticsound.genetics.Pool
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.nio.ByteBuffer
@@ -13,6 +14,7 @@ import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioInputStream
 import javax.sound.sampled.AudioSystem
 
+
 fun main(args: Array<String>) {
     GeneticSound(filename = args[0],
             populationCount = 100,
@@ -20,9 +22,9 @@ fun main(args: Array<String>) {
             supportedClipTypes = arrayOf(ClipType.SINUSOID),
             mutationProbability = 0.01F,
             fitnessFunction = DiffFitnessFunction(),
-            selector = Selector(),
+            selector = RankSelector(bias = 0.4),
             mutator = Mutator(),
-            crossOver = CrossOver())
+            crossOver = ZipperCrossOver())
             .run()
 }
 
@@ -37,6 +39,7 @@ class GeneticSound(val filename: String,
                    val mutator: Mutator) {
 
     fun run() {
+
         val audioFileFormat = AudioSystem.getAudioFileFormat(File(filename))
 
         audioFileFormat.type
@@ -94,25 +97,28 @@ class GeneticSound(val filename: String,
 
         // New random population
         var population: List<Individual<Clip>> = pool.newPopulation()
-
         var generation = 0
+        var allTimeBest = Long.MAX_VALUE;
 
-        do { 
+        do {
 
             val audioCanvas: ShortArray = ShortArray(audioFileFormat.frameLength).apply { fill(0) }
 
             // Assigns the fitness to each individual
-            measure("Assign and Render ") {
+            val duration = measure("Assign and Render ") {
                 renderAndAssignFitness(targetShortArray, audioCanvas, population)
             }
 
-            val buffer = ByteBuffer.allocate(audioCanvas.size * 2)
-            buffer.asShortBuffer().put(audioCanvas)
-            val bytes = buffer.array()
+            val best = population.sortedBy { it.fitness }.first().fitness
+            if (best < allTimeBest) allTimeBest = best
 
-            if (generation % 10 == 0) {
-                writeToFile(audioFileFormat, bytes)
-            }
+            // Average fitness, SD, delta
+            val populationFitness: DoubleArray = population.map { it.fitness.toDouble() }.toDoubleArray()
+            println("$generation ${best} ${allTimeBest} ${populationFitness.avg()} ${populationFitness.sd()} $duration")
+
+            writeToFile(audioCanvas, audioFileFormat)
+
+            println()
 
             // Change the population
             population = buildNextGeneration(population, pool)
@@ -120,6 +126,13 @@ class GeneticSound(val filename: String,
 
         } while (true)
 
+    }
+
+    private fun writeToFile(audioCanvas: ShortArray, audioFileFormat: AudioFileFormat) {
+        val buffer = ByteBuffer.allocate(audioCanvas.size * 2)
+        buffer.asShortBuffer().put(audioCanvas)
+        val bytes = buffer.array()
+        writeToFile(audioFileFormat, bytes)
     }
 
     private fun writeToFile(audioFileFormat: AudioFileFormat, bytes: ByteArray) {
@@ -145,19 +158,14 @@ class GeneticSound(val filename: String,
     }
 
     private fun buildNextGeneration(population: List<Individual<Clip>>, pool: Pool): List<Individual<Clip>> {
-        val populationByFitness = population.sortedBy { it.fitness }
-        val avgFitness = population.map { it.fitness }.average()
-        println("Average fitness: $avgFitness")
-        return population.map { retainOrReplace(it, avgFitness, populationByFitness, pool) }
+        return population.map { retainOrReplace(it, population.sortedBy { it.fitness }, pool) }
     }
 
-    private fun retainOrReplace(individual: Individual<Clip>, avgFitness: Double, populationByFitness: List<Individual<Clip>>, pool: Pool): Individual<Clip> {
-        // Lower fitness is better!!!!
-        return if (individual.fitness < avgFitness) individual
+    private fun retainOrReplace(individual: Individual<Clip>, populationByFitness: List<Individual<Clip>>, pool: Pool): Individual<Clip> {
+        return if (isElite(individual, populationByFitness)) individual // elitism
         else {
             val one = selector.select(populationByFitness)
-            val two = selector.select(populationByFitness) // hmm could selector same as `one`
-            //   println("Individual with fitness ${individual.fitness} has died, replace by child of fitness: ${one.fitness} and ${two.fitness}")
+            val two = selector.select(populationByFitness) // hmm could selector same as `one`. weird.
             crossOver.perform(Pair(one, two), mutator, mutationProbability, pool)
         }
     }
@@ -165,12 +173,16 @@ class GeneticSound(val filename: String,
     private fun renderAndAssignFitness(target: ShortArray,
                                        audioCanvas: ShortArray,
                                        population: List<Individual<Clip>>) {
-        measure("renderAndAssignFitness, target: ${target.size}, audioCanvas: ${audioCanvas.size}, population: ${population.size}") {
-            population.forEach { individual ->
-                expressIndividual(audioCanvas, individual)
-                individual.fitness = fitnessFunction.compare(target, audioCanvas)
-            }
+        population.forEach { individual ->
+            expressIndividual(audioCanvas, individual)
+            individual.fitness = fitnessFunction.compare(target, audioCanvas)
         }
+    }
+
+    private fun isElite(individual: Individual<Clip>, population: List<Individual<Clip>>): Boolean {
+        val avgFitness = population.map { it.fitness }.average()
+        // Lower fitness is better!!!!
+        return individual.fitness < avgFitness
     }
 
     private fun expressIndividual(audioCanvas: ShortArray, individual: Individual<Clip>) {
@@ -186,6 +198,14 @@ class GeneticSound(val filename: String,
     private fun mergeAudio(audioCanvas: ShortArray, audioCanvasIndex: Int, clipShort: Short): Short {
         // Average of existing merged values
         return ((audioCanvas[audioCanvasIndex].toInt() + clipShort.toInt()) / 2).toShort() // use Int to give 32 bits, which is 16 bits more headroom than Short
+    }
+
+    private fun DoubleArray.sd(): Double {
+        return DescriptiveStatistics(this).standardDeviation
+    }
+
+    private fun DoubleArray.avg(): Double {
+        return DescriptiveStatistics(this).mean
     }
 
 }
