@@ -19,8 +19,6 @@ enum class Note(val displayName: String, val frequency: Float) {
     G_SHARP("G#", 415.305F)
 }
 
-data class OctaveNote(val note: Note, val octaveMultipler: Int)
-
 abstract class Clip(var frameRange: IntRange,
                     val frameRate: Float,
                     var peakAmplitude: Short) {
@@ -28,35 +26,11 @@ abstract class Clip(var frameRange: IntRange,
     abstract fun waveform(): ShortArray
 }
 
-class PredefinedClip(val data : ShortArray) : Clip(0..0, 0.0F, 0) {
-    override fun waveform(): ShortArray {
-        return data
-    }
-}
-
-class Noise(frameRange: IntRange,
-            frameRate: Float,
-            peakAmplitude: Short) : Clip(frameRange, frameRate, peakAmplitude) {
-    override fun waveform(): ShortArray {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-}
-
 abstract class Periodic(frameRange: IntRange,
                         frameRate: Float,
                         peakAmplitude: Short,
                         val phaseOffset: Int = 0,
                         var frequency: Float) : Clip(frameRange, frameRate, peakAmplitude)
-
-class Triangle(frameRange: IntRange,
-               frameRate: Float,
-               peakAmplitude: Short,
-               phaseOffset: Int,
-               frequency: Float) : Periodic(frameRange, frameRate, peakAmplitude, phaseOffset, frequency) {
-    override fun waveform(): ShortArray {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-}
 
 class Sinusoid(frameRange: IntRange,
                frameRate: Float,
