@@ -2,10 +2,10 @@ package com.petertackage.geneticsound
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics
 
-class VarianceMutationProbabilityGenerator(val stats: DescriptiveStatistics,
-                                           val baseProbability: Float,
-                                           maxProbability: Float,
-                                           val cvThresholdPercent: Float) : MutationProbabilityGenerator {
+class VarianceMutationProbability(val stats: DescriptiveStatistics,
+                                  val baseProbability: Float,
+                                  maxProbability: Float,
+                                  val cvThresholdPercent: Float) : MutationProbability {
 
     private val deltaProbability = maxProbability - baseProbability
 

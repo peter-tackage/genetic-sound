@@ -1,6 +1,6 @@
 package com.petertackage.geneticsound
 
-class FixedMutationProbabilityGenerator(val probability: Float) : MutationProbabilityGenerator {
+class ConstantMutationProbability(val probability: Float) : MutationProbability {
     override fun next(): Float {
         return probability
     }

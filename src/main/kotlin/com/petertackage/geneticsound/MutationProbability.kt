@@ -1,5 +1,5 @@
 package com.petertackage.geneticsound
 
-interface MutationProbabilityGenerator {
+interface MutationProbability {
     fun next(): Float
 }
