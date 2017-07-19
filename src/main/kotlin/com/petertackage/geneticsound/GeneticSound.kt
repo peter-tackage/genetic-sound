@@ -20,7 +20,7 @@ fun main(args: Array<String>) {
             populationCount = 100,
             geneCount = 100,
             supportedClipTypes = arrayOf(ClipType.SINUSOID),
-            mutationProbability = 0.01F,
+            mutationProbabilityGenerator = FixedMutationProbabilityGenerator(probability = 0.01F),
             fitnessFunction = AmplitudeDiffFitnessFunction(),
             selector = RankSelector(bias = 0.4),
             mutator = Mutator(),
@@ -32,7 +32,7 @@ class GeneticSound(val filename: String,
                    val geneCount: Int,
                    val populationCount: Int,
                    val supportedClipTypes: Array<ClipType>,
-                   val mutationProbability: Float,
+                   val mutationProbabilityGenerator: MutationProbabilityGenerator,
                    val fitnessFunction: FitnessFunction,
                    val selector: Selector,
                    val crossOver: CrossOver,
@@ -156,8 +156,8 @@ class GeneticSound(val filename: String,
     }
 
     private fun buildNextGeneration(population: List<Individual<Clip>>, pool: Pool): List<Individual<Clip>> {
-        val mutationProbability = mutationProbability
-        return population.map { retainOrReplace(it, population.sortedBy { it.fitness }, mutationProbability, pool) }
+        val mutationProbability = mutationProbabilityGenerator
+        return population.map { retainOrReplace(it, population.sortedBy { it.fitness }, mutationProbability.next(), pool) }
     }
 
     private fun retainOrReplace(individual: Individual<Clip>, populationByFitness: List<Individual<Clip>>, mutationProbability: Float, pool: Pool): Individual<Clip> {
