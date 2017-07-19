@@ -156,14 +156,16 @@ class GeneticSound(val filename: String,
     }
 
     private fun buildNextGeneration(population: List<Individual<Clip>>, pool: Pool): List<Individual<Clip>> {
-        return population.map { retainOrReplace(it, population.sortedBy { it.fitness }, pool) }
+        val mutationProbability = mutationProbability
+        return population.map { retainOrReplace(it, population.sortedBy { it.fitness }, mutationProbability, pool) }
     }
 
-    private fun retainOrReplace(individual: Individual<Clip>, populationByFitness: List<Individual<Clip>>, pool: Pool): Individual<Clip> {
+    private fun retainOrReplace(individual: Individual<Clip>, populationByFitness: List<Individual<Clip>>, mutationProbability: Float, pool: Pool): Individual<Clip> {
         return if (isElite(individual, populationByFitness)) individual // elitism
         else {
             val one = selector.select(populationByFitness)
             val two = selector.select(populationByFitness) // hmm could selector same as `one`. weird.
+
             crossOver.perform(Pair(one, two), mutator, mutationProbability, pool)
         }
     }
