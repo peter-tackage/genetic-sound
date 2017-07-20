@@ -10,7 +10,7 @@ class VarianceMutationProbability(val stats: DescriptiveStatistics,
     private val deltaProbability = maxProbability - baseProbability
 
     init {
-        if (maxProbability > baseProbability) throw IllegalArgumentException("maxProbability must be more that baseProbability")
+        if (maxProbability < baseProbability) throw IllegalArgumentException("maxProbability must be more that baseProbability")
     }
 
     override fun next(): Float {

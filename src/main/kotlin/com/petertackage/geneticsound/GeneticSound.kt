@@ -20,7 +20,7 @@ fun main(args: Array<String>) {
             populationCount = 100,
             geneCount = 100,
             supportedClipTypes = arrayOf(ClipType.SINUSOID),
-            mutationProbabilityGenerator = ConstantMutationProbability(probability = 0.01F),
+            //      mutationProbability = VarianceMutationProbability(probability = 0.01F),
             fitnessFunction = AmplitudeDiffFitnessFunction(),
             selector = RankSelector(bias = 0.4),
             mutator = Mutator(),
@@ -32,7 +32,7 @@ class GeneticSound(val filename: String,
                    val geneCount: Int,
                    val populationCount: Int,
                    val supportedClipTypes: Array<ClipType>,
-                   val mutationProbabilityGenerator: MutationProbability,
+        //    val mutationProbability: MutationProbability,
                    val fitnessFunction: FitnessFunction,
                    val selector: Selector,
                    val crossOver: CrossOver,
@@ -114,12 +114,15 @@ class GeneticSound(val filename: String,
 
             // Average fitness, SD, delta
             val populationFitness: DoubleArray = population.map { it.fitness.toDouble() }.toDoubleArray()
-            println("$generation ${best} ${allTimeBest} ${populationFitness.avg()} ${populationFitness.sd()} $duration")
+            val fitnessStats = DescriptiveStatistics(populationFitness)
+
+            // Logging
+            println("$generation ${best} ${allTimeBest} ${fitnessStats.mean} ${fitnessStats.standardDeviation} ${fitnessStats.coefficientOfVariance()} $duration")
 
             writeToFile(audioCanvas, audioFileFormat)
 
             // Change the population
-            population = buildNextGeneration(population, pool)
+            population = buildNextGeneration(population, fitnessStats, pool)
             generation++
 
         } while (true)
@@ -155,8 +158,11 @@ class GeneticSound(val filename: String,
                 file)
     }
 
-    private fun buildNextGeneration(population: List<Individual<Clip>>, pool: Pool): List<Individual<Clip>> {
-        val mutationProbability = mutationProbabilityGenerator
+    private fun buildNextGeneration(population: List<Individual<Clip>>, fitnessStats: DescriptiveStatistics, pool: Pool): List<Individual<Clip>> {
+        val mutationProbability = VarianceMutationProbability(fitnessStats,
+                baseProbability = 0.01F,
+                maxProbability = 0.10F,
+                cvThresholdPercent = 1.0F)
         return population.map { retainOrReplace(it, population.sortedBy { it.fitness }, mutationProbability.next(), pool) }
     }
 
@@ -206,6 +212,10 @@ class GeneticSound(val filename: String,
 
     private fun DoubleArray.avg(): Double {
         return DescriptiveStatistics(this).mean
+    }
+
+    private fun DescriptiveStatistics.coefficientOfVariance(): Double {
+        return (this.standardDeviation / this.mean) * 100
     }
 
 }
