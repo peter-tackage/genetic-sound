@@ -5,19 +5,16 @@ import com.petertackage.geneticsound.genetics.Individual
 import com.petertackage.geneticsound.genetics.Pool
 import java.util.*
 
-class ZipperCrossOver : CrossOver {
+class UniformZipperCrossOver : CrossOver {
 
     private val random = Random()
 
     override fun perform(pair: Pair<Individual<Clip>, Individual<Clip>>, mutator: Mutator, mutationProbability: Float, pool: Pool): Individual<Clip> {
         return (pair.first.dna.indices).map { i ->
-            // Either take from first or second parent
-            // Copy the genes so that mutations don't affect parent!
-            if (random.nextDouble() > 0.5) {
-                mutator.mutate(pair.first.dna[i], mutationProbability, pool)
-            } else {
-                mutator.mutate(pair.second.dna[i], mutationProbability, pool)
-            }
+            // Either take from first or second parent depending on dice roll
+            random.nextDouble()
+                    .let { if (it > 0.5) pair.first.dna[i] else pair.second.dna[i] }
+                    .let { mutator.mutate(it, mutationProbability, pool) }
         }.let { Individual(it) }
     }
 }

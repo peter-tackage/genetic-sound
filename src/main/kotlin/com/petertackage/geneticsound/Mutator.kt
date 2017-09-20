@@ -18,6 +18,7 @@ class Mutator {
     }
 
     private fun mutateSinusoid(gene: Sinusoid, pool: Pool): Clip {
+        // Copy the genes so that mutations don't affect parent!
         return when (random.nextInt(3)) {
             0 -> gene.copy(frequency = pool.randomFrequency())
             1 -> gene.copy(frameRange = pool.randomFrameRange())
