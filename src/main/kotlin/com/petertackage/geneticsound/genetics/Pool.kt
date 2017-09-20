@@ -1,5 +1,8 @@
 package com.petertackage.geneticsound.genetics
 
+import kotlinx.coroutines.experimental.CommonPool
+import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.runBlocking
 import java.util.*
 
 class Pool(val context: com.petertackage.geneticsound.Context) {
@@ -7,11 +10,10 @@ class Pool(val context: com.petertackage.geneticsound.Context) {
     private val random = Random()
 
     fun newPopulation(): List<Individual<Clip>> {
-        val population = mutableListOf<Individual<Clip>>()
-        (1..context.populationCount).forEach {
-            population.add(newIndividual())
-        }
-        return population
+        val deferred = (1..context.populationCount)
+                .map { async(CommonPool) { newIndividual() } }
+
+        return runBlocking { deferred.map { it.await() } }
     }
 
     fun newIndividual(): Individual<Clip> {
