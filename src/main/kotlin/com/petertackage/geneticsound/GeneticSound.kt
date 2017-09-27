@@ -4,6 +4,9 @@ import com.petertackage.geneticsound.genetics.Clip
 import com.petertackage.geneticsound.genetics.ClipType
 import com.petertackage.geneticsound.genetics.Individual
 import com.petertackage.geneticsound.genetics.Pool
+import kotlinx.coroutines.experimental.CommonPool
+import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.runBlocking
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -22,9 +25,10 @@ fun main(args: Array<String>) {
             supportedClipTypes = arrayOf(ClipType.SINUSOID),
             //      mutationProbability = VarianceMutationProbability(probability = 0.01F),
             fitnessFunction = AmplitudeDiffFitnessFunction(),
+            //fitnessFunction = CoroutineAmplitudeDiffFitnessFunction(),
             selector = RankSelector(bias = 0.4),
             mutator = Mutator(),
-            crossOver = ZipperCrossOver())
+            crossOver = UniformZipperCrossOver())
             .run()
 }
 
@@ -96,7 +100,7 @@ class GeneticSound(val filename: String,
                 supportedClipTypes))
 
         // New random population
-        var population: List<Individual<Clip>> = pool.newPopulation()
+        var population: List<Individual<Clip>> = measure("Population creation") { pool.newPopulation() }
         var generation = 0
         var allTimeBest = Long.MAX_VALUE;
 
@@ -105,7 +109,7 @@ class GeneticSound(val filename: String,
             val audioCanvas: ShortArray = ShortArray(audioFileFormat.frameLength).apply { fill(0) }
 
             // Assigns the fitness to each individual
-            val duration = measure("Assign and Render ") {
+            val duration = measure {
                 renderAndAssignFitness(targetShortArray, audioCanvas, population)
             }
 
@@ -163,7 +167,19 @@ class GeneticSound(val filename: String,
                 baseProbability = 0.01F,
                 maxProbability = 0.10F,
                 cvThresholdPercent = 1.0F)
-        return population.map { retainOrReplace(it, population.sortedBy { it.fitness }, mutationProbability.next(), pool) }
+        return measure("buildNextGen") {
+            runBlocking {
+                population
+                        .map { async(CommonPool) { retainOrReplace(it, population.sortedBy { it.fitness }, mutationProbability.next(), pool) } }
+                        .map { it.await() }
+            }
+        }
+
+//        return measure("buildNextGen") {
+//            population
+//                    .map { retainOrReplace(it, population.sortedBy { it.fitness }, mutationProbability.next(), pool) }
+//        }
+
     }
 
     private fun retainOrReplace(individual: Individual<Clip>, populationByFitness: List<Individual<Clip>>, mutationProbability: Float, pool: Pool): Individual<Clip> {
@@ -179,6 +195,7 @@ class GeneticSound(val filename: String,
     private fun renderAndAssignFitness(target: ShortArray,
                                        audioCanvas: ShortArray,
                                        population: List<Individual<Clip>>) {
+        // ####### Note: expressing take ~30ms, comparison ~3ms. #######
         population.forEach { individual ->
             expressIndividual(audioCanvas, individual)
             individual.fitness = fitnessFunction.compare(target, audioCanvas)
@@ -193,17 +210,18 @@ class GeneticSound(val filename: String,
 
     private fun expressIndividual(audioCanvas: ShortArray, individual: Individual<Clip>) {
         individual.dna.forEach { clip ->
+            println(clip.frameRange.last - clip.frameRange.first)
             clip.waveform().forEachIndexed { frameIndex, clipShort ->
                 val audioCanvasIndex = clip.frameRange.start + frameIndex
-                val merged: Short = mergeAudio(audioCanvas, audioCanvasIndex, clipShort)
-                audioCanvas[audioCanvasIndex] = merged // update audio canvas
+                val merged = mergeAudio(audioCanvas, audioCanvasIndex, clipShort)
+                audioCanvas[audioCanvasIndex] = merged
             }
         }
     }
 
     private fun mergeAudio(audioCanvas: ShortArray, audioCanvasIndex: Int, clipShort: Short): Short {
         // Average of existing merged values
-        return ((audioCanvas[audioCanvasIndex].toInt() + clipShort.toInt()) / 2).toShort() // use Int to give 32 bits, which is 16 bits more headroom than Short
+        return ((audioCanvas[audioCanvasIndex] + clipShort.toInt()) / 2).toShort() // use Int to give 32 bits, which is 16 bits more headroom than Short
     }
 
     private fun DoubleArray.sd(): Double {
