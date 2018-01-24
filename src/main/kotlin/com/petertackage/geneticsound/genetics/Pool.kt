@@ -21,7 +21,7 @@ class Pool(val context: com.petertackage.geneticsound.Context) {
         (1..context.geneCount).forEach {
             genes.add(newClip())
         }
-        return Individual<Clip>(genes)
+        return Individual(genes)
     }
 
     fun newClip(): Clip {
@@ -50,7 +50,8 @@ class Pool(val context: com.petertackage.geneticsound.Context) {
     }
 
     fun randomFrequency(): Float {
-        // Max frequency produced is limited by Nyquist frequency
+        // Max frequency produced should be limited by Nyquist frequency (1/2 sample rate)
+        // That is not strictly enforced here.
         val octave = random.nextInt(4)
         val note = Note.values()[random.nextInt(Note.values().lastIndex)]
         return (note.frequency * Math.pow(2.0, octave.toDouble())).toFloat()

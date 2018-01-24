@@ -59,6 +59,7 @@ class GeneticSound(val filename: String,
                 ?.let { throw IllegalArgumentException("Only is PCM Signed encoding is supported, found: $it") }
 
         // PCM_SIGNED 44100.0 Hz, 16 bit, stereo, 4 bytes/frame, little-endian
+        // PCM_SIGNED is LPCM, which makes uniformly distributed sample volume generation simpler.
 
         // A frame is a measure of length/size, so a file can by 120 frames long and each
         // frame contains 4 bytes
@@ -86,7 +87,7 @@ class GeneticSound(val filename: String,
         // But: Using Short (16 bit sample size) doesn't get us any headroom for operations.
 
         // TODO Make support other frame sizes (dynamic ranges), currently only supports 16 bit.
-        val targetShortArray: ShortArray = ShortArray(audioFileFormat.frameLength)
+        val targetShortArray = ShortArray(audioFileFormat.frameLength)
         ByteBuffer.wrap(audioBytes)
                 .order(if (audioFileFormat.format.isBigEndian) ByteOrder.BIG_ENDIAN else ByteOrder.LITTLE_ENDIAN)
                 .asShortBuffer()
@@ -210,7 +211,6 @@ class GeneticSound(val filename: String,
 
     private fun expressIndividual(audioCanvas: ShortArray, individual: Individual<Clip>) {
         individual.dna.forEach { clip ->
-            println(clip.frameRange.last - clip.frameRange.first)
             clip.waveform().forEachIndexed { frameIndex, clipShort ->
                 val audioCanvasIndex = clip.frameRange.start + frameIndex
                 val merged = mergeAudio(audioCanvas, audioCanvasIndex, clipShort)
