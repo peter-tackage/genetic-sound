@@ -37,7 +37,7 @@ The population is comprised of individuals with a number of clips (waveforms) as
 
 1. Randomly generate an initial population.
 1. Render each individual in the population on a blank audio canvas:
-    - Assessing the individual's fitness once it is rendered.
+    - Assess the individual's fitness once as it is rendered.
 1. Write the newly evolved audio canvas to an output audio file. 
 1. Create the next population generation:
     - Sort the population by fitness.
@@ -48,13 +48,41 @@ The population is comprised of individuals with a number of clips (waveforms) as
 
 # Genetic Operators
 
+This is a short description of the current state of the generic operators used in the algorithm and their strategies.
+
 ## Selection
+
+A Selector returns a single individual from the population to define a parent for the next generation. All selection is currently performed on a fitness sorted population. 
+
+- RankSelector
+- CutoffSelector
 
 ### Elitism
 
+An individual is currently "elite" is they have a better than average fitness. 
+
 ## Crossover
 
+- UniformZipperCrossOver
+
 ## Mutation
+
+### MutationProbabiity
+
+Determines the likelihood of mutation of a gene.
+
+- ConstantMutationProbability
+- VarianceMutationProbability
+
+### Mutator
+
+Performs the mutation of a gene.
+
+Currently only mutates sinusoids by changing either:
+- Amplitude
+- Start position
+- End position
+- Frequency
 
 # Discussion Points
 

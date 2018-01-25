@@ -170,6 +170,7 @@ class GeneticSound(val filename: String,
                 cvThresholdPercent = 1.0F)
         return measure("buildNextGen") {
             runBlocking {
+                // Fitness is sorted in descending order - fittest items are first.
                 population
                         .map { async(CommonPool) { retainOrReplace(it, population.sortedBy { it.fitness }, mutationProbability.next(), pool) } }
                         .map { it.await() }

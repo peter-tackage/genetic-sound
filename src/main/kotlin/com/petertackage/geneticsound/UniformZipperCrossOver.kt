@@ -5,6 +5,12 @@ import com.petertackage.geneticsound.genetics.Individual
 import com.petertackage.geneticsound.genetics.Pool
 import java.util.*
 
+/**
+ * A CrossOver which combines individuals by iterating through the parent gene indices and randomly which parent's
+ * corresponding gene is selected.
+ *
+ * The chosen gene is then potentially mutated and added to resultant child.
+ */
 class UniformZipperCrossOver : CrossOver {
 
     private val random = Random()
