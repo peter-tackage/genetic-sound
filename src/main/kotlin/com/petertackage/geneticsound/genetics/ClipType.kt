@@ -6,7 +6,6 @@ enum class ClipType {
     SQUARE,
     NOISE,
     DC,
-    SINGLE,
 }
 
 enum class AmplitudeModulation {

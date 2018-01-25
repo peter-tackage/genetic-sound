@@ -11,7 +11,6 @@ class AmplitudeDiffFitnessFunction : FitnessFunction {
         return Math.abs(targetFrame - proposedFrame)
     }
 
-
     // Represent the diff in Double/Long (64bits) to allow for the greatest resolution when determining fitness
     // If we clip the diff at Short.MAX/MIN or Int.MAX/MIN then we won't see improvements in the algorithm when
     // the population is unfit.

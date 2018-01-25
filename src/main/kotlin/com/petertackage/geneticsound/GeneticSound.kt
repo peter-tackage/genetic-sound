@@ -136,7 +136,7 @@ class GeneticSound(val filename: String,
 
     private fun writeToFile(audioCanvas: ShortArray, audioFileFormat: AudioFileFormat) {
         val buffer = ByteBuffer.allocate(audioCanvas.size * 2)
-        buffer.asShortBuffer().put(audioCanvas)
+        buffer.order(ByteOrder.BIG_ENDIAN).asShortBuffer().put(audioCanvas) // ByteBuffer is big-endian by default, but be explicit.
         val bytes = buffer.array()
         writeToFile(audioFileFormat, bytes)
     }
