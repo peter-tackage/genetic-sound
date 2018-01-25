@@ -2,6 +2,8 @@
 
 An ongoing experiment in synthetic audio reproduction using genetic algorithms.
 
+The synthesis is primarily aimed at reproducing the sounds of musical instruments.
+
 # Configuration
 
 At the top level the algorithm configured with the following components:
@@ -50,6 +52,12 @@ The population is comprised of individuals with a number of clips (waveforms) as
 
 This is a short description of the current state of the generic operators used in the algorithm and their strategies.
 
+## Fitness
+
+Fitness is evaluate as the sum of the differences between the samples of the individual rendered on the audio canvas and the original source audio.
+
+Thus, a lower fitness value is better. 
+
 ## Selection
 
 A Selector returns a single individual from the population to define a parent for the next generation. All selection is currently performed on a fitness sorted population. 
@@ -59,7 +67,7 @@ A Selector returns a single individual from the population to define a parent fo
 
 ### Elitism
 
-An individual is currently "elite" is they have a better than average fitness. 
+An individual is currently "elite" if they have a better than average fitness. 
 
 ## Crossover
 
@@ -67,13 +75,16 @@ An individual is currently "elite" is they have a better than average fitness.
 
 ## Mutation
 
-### MutationProbabiity
+### MutationProbability
 
 Determines the likelihood of mutation of a gene.
 
 - ConstantMutationProbability
 - VarianceMutationProbability
-
+    - Is this disruptive?
+- TODO GenerationMutationProbability
+    - Make the mutation probability a function of the generation number.
+    
 ### Mutator
 
 Performs the mutation of a gene.
@@ -84,11 +95,29 @@ Currently only mutates sinusoids by changing either:
 - End position
 - Frequency
 
-# Discussion Points
+## Clips
+
+### Waveforms
+
+ - SINUSOID
+ - TRIANGLE (TODO)
+ - SQUARE (TODO)
+ - NOISE (TODO)
+ - DC (TODO)
+ 
+### Amplitude Modulation
+
+ - SWELL (TODO)
+ - DECAY (TODO)
+ - SINUSOID (TODO)
+ - NONE 
+ 
+# Discussion Points and Problems
 
 - Blank vs merging canvas
     - Merging makes discovery difficult.  
 - Population vs gene size
+    - What are the tradeoffs in having many individuals with only a few genes or only a few individuals with many genes?
 - Mutation rates
     - Convergence vs divergence. Local/Global maximum. Stability
 - Selection
@@ -101,6 +130,10 @@ Currently only mutates sinusoids by changing either:
 - Should selection not choose from elite individuals?
     - Currently elite individuals are included, which may be negatively impacting discovery.
 - Improving Generational Rate
+    - How to make the rendering/expressing faster?
 - Termination strategies
     - Generation, time/resources, fitness, manual inspection
-
+- Out of phase signals reducing the amplitude.
+- The affect of clip order in the signal merging result.
+    - When merging a clip the resultant merged signal is the average of the existing audio canvas and the clip to be merged. This means that clips added later will be stronger in the mix. This usually means that the less fit signals are unfortunately proportionally stronger than the fitter signals.
+- Use of spectral analysis to calculate better fitness results.
