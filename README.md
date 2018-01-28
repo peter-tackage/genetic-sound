@@ -58,6 +58,9 @@ Fitness is evaluate as the sum of the differences between the samples of the ind
 
 Thus, a lower fitness value is better. 
 
+ - AmplitudeDiffFitnessFunction
+ - CoroutineAmplitudeDiffFitnessFunction
+
 ## Selection
 
 A Selector returns a single individual from the population to define a parent for the next generation. All selection is currently performed on a fitness sorted population. 
@@ -122,18 +125,25 @@ Currently only mutates sinusoids by changing either:
     - Convergence vs divergence. Local/Global maximum. Stability
 - Selection
 - Elitism
+    - Is better than average actually elite - should the elite group be smaller?
 - Rendering performance
 - Clip complexity
     - More complex waveforms made improve performance vs increasing the sinusoidal population size. 
 - Rendering techniques
-- Fitness function depending on population ordering    
+- Fitness function depending on population ordering 
+    - The fitness of a given individual cannot be considered in isolation. Changes to individuals, will impact subsequent individuals.    
 - Should selection not choose from elite individuals?
-    - Currently elite individuals are included, which may be negatively impacting discovery.
+    - Currently elite individuals are included, which may be negatively impacting discovery by reducing diversity
 - Improving Generational Rate
-    - How to make the rendering/expressing faster?
+    - How to make the rendering/expressing faster? Currently 30ms for 100 genes.
 - Termination strategies
     - Generation, time/resources, fitness, manual inspection
 - Out of phase signals reducing the amplitude.
 - The affect of clip order in the signal merging result.
     - When merging a clip the resultant merged signal is the average of the existing audio canvas and the clip to be merged. This means that clips added later will be stronger in the mix. This usually means that the less fit signals are unfortunately proportionally stronger than the fitter signals.
 - Use of spectral analysis to calculate better fitness results.
+- Effective use of Kotlin coroutines.
+    - Reward vs overhead - where should they be used?
+- Fitness function calculates the absolute total sum different between the target and individual. Perhaps this should be 0.0 <= f <= 1.0 and only consider the range of the individual being added. Then weight this for the percentage of range that the individual occupies
+- Use a "step size" for the Fitness function to improve performance
+    - Accuracy cost?
