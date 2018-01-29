@@ -4,6 +4,11 @@ import kotlinx.coroutines.experimental.CommonPool
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.runBlocking
 
+/**
+ * Grossly inefficient use of Kotlin coroutines to perform amplitude difference calculation.
+ *
+ * From my observations, the overhead of the coroutine is too big for the simple diff calculation that is being performed.
+ */
 class CoroutineAmplitudeDiffFitnessFunction : FitnessFunction {
     override fun compare(target: ShortArray, proposed: ShortArray): Long {
 

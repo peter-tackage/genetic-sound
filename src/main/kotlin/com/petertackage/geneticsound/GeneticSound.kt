@@ -16,6 +16,7 @@ import javax.sound.sampled.AudioFileFormat
 import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioInputStream
 import javax.sound.sampled.AudioSystem
+import kotlin.system.measureTimeMillis
 
 
 fun main(args: Array<String>) {
@@ -23,9 +24,7 @@ fun main(args: Array<String>) {
             populationCount = 100,
             geneCount = 100,
             supportedClipTypes = arrayOf(ClipType.SINUSOID),
-            //      mutationProbability = VarianceMutationProbability(probability = 0.01F),
             fitnessFunction = AmplitudeDiffFitnessFunction(),
-            //fitnessFunction = CoroutineAmplitudeDiffFitnessFunction(),
             selector = RankSelector(bias = 0.4),
             mutator = Mutator(),
             crossOver = UniformZipperCrossOver())
@@ -36,7 +35,6 @@ class GeneticSound(val filename: String,
                    val geneCount: Int,
                    val populationCount: Int,
                    val supportedClipTypes: Array<ClipType>,
-        //    val mutationProbability: MutationProbability,
                    val fitnessFunction: FitnessFunction,
                    val selector: Selector,
                    val crossOver: CrossOver,
@@ -110,7 +108,7 @@ class GeneticSound(val filename: String,
             val audioCanvas: ShortArray = ShortArray(audioFileFormat.frameLength).apply { fill(0) }
 
             // Assigns the fitness to each individual
-            val duration = measure {
+            val duration = measureTimeMillis {
                 renderAndAssignFitness(targetShortArray, audioCanvas, population)
             }
 
