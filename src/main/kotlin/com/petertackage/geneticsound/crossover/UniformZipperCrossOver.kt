@@ -25,4 +25,3 @@ class UniformZipperCrossOver : CrossOver {
         }.let { Individual(it) }
     }
 }
-

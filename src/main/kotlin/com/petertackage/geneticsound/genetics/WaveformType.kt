@@ -1,8 +1,8 @@
 package com.petertackage.geneticsound.genetics
 
-enum class ClipType {
+enum class WaveformType {
     SINUSOID,
-    TRIANGLE,
+    //TRIANGLE,
     SQUARE,
     SAW,
 }

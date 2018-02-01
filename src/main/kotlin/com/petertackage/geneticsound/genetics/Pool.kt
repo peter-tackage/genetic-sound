@@ -25,27 +25,8 @@ class Pool(val context: Context) {
         return Individual(genes)
     }
 
-    fun newClip(): Clip {
-        val clipIndex = random.nextInt(context.supportedClipTypes.size)
-        val clipType = context.supportedClipTypes.get(clipIndex)
-        return when (clipType) {
-            ClipType.SINUSOID -> newSinusoidClip()
-            ClipType.SQUARE -> newSquareClip()
-            ClipType.SAW -> newSawtoothClip()
-            else -> throw IllegalArgumentException("New not supported for $clipType")
-        }
-    }
-
-    private fun newSinusoidClip(): Sinusoid {
-        return Sinusoid(randomFrameRange(), context.frameRate, randomPeakAmplitude(), randomFrequency())
-    }
-
-    private fun newSquareClip(): Square {
-        return Square(randomFrameRange(), context.frameRate, randomPeakAmplitude(), randomFrequency())
-    }
-
-    private fun newSawtoothClip(): Saw {
-        return Saw(randomFrameRange(), context.frameRate, randomPeakAmplitude(), randomFrequency())
+    private fun newClip(): Clip {
+        return Clip(randomFrameRange(), context.frameRate, randomPeakAmplitude(), randomFrequency(), randomWaveformType())
     }
 
     fun randomFrameRange(): IntRange {
@@ -68,14 +49,19 @@ class Pool(val context: Context) {
         val note = Note.values()[random.nextInt(Note.values().lastIndex)]
 
         // Flip a coin
-        if(random.nextBoolean()) {
-            val octave = random.nextInt(8) // G# with 8th Octave to 13 kHz.
+        if (random.nextBoolean()) {
+            val octave = random.nextInt(6) // G# with 8th Octave to 13 kHz.
             return (note.frequency * Math.pow(2.0, octave.toDouble())).toFloat()
         } else {
             // G# with 351 harmonic is ~18 kHz.
-            val harmonic = random.nextInt(350) + 1
+            val harmonic = random.nextInt(100) + 1
             return (note.frequency * harmonic)
         }
+    }
+
+    fun randomWaveformType(): WaveformType {
+        val clipIndex = random.nextInt(context.supportedClipTypes.size)
+        return context.supportedClipTypes.get(clipIndex)
     }
 
 }

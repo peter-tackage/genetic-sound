@@ -1,6 +1,6 @@
 package com.petertackage.geneticsound
 
-fun List<Long>.sumExact(): Long {
+fun List<Long>.sumExactOrClip(): Long {
     var sum = 0L
     for (element in this) {
         try {

@@ -1,5 +1,6 @@
 package com.petertackage.geneticsound.mutation
 
+import com.petertackage.geneticsound.coefficientOfVariance
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics
 
 /**
@@ -15,26 +16,23 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics
  */
 class VarianceMutationProbability(private val stats: DescriptiveStatistics,
                                   private val minProbability: Float,
-                                  val maxProbability: Float,
-                                  private val cvThresholdPercent: Float) : MutationProbability {
+                                  val maxProbability: Float) : MutationProbability {
 
     init {
         if (maxProbability < minProbability) throw IllegalArgumentException("maxProbability must be more that minProbability")
     }
 
     override fun next(): Float {
-
-        val sd = stats.standardDeviation
-        val mean = stats.mean
-
-        // Smaller means less variance, therefore should increase the mutation rate.
-
-        // Have low threshold  and scale up to max
-        val cvPercent = (sd / mean).toFloat() * 100F
-        return scaledProbability(cvPercent)
+        // Smaller CV means less variance, therefore should increase the mutation rate.
+        val cv: Float = stats.coefficientOfVariance().toFloat()  // 0 .. 100
+        val probability = scaledProbability(cv)
+        if (probability < minProbability || probability > maxProbability) throw IllegalStateException("Bad prob: $probability")
+        return probability
     }
 
-    private fun scaledProbability(cvPercent: Float): Float {
-        return minProbability + (maxProbability - minProbability) * (1 - cvPercent / cvThresholdPercent)
+    private fun scaledProbability(cv: Float): Float {
+        // Low CV, is low variance, so should equate to higher mutation rate. (approaching max)
+        // High CV is high variance, so should equate to lower mutation rate (approaching min)
+        return minProbability + (maxProbability - minProbability) * (1 - cv / 100f)
     }
 }

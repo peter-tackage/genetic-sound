@@ -20,27 +20,36 @@ enum class Note(val displayName: String, val frequency: Float) {
 
 val TWO_PI = 2 * Math.PI;
 
-abstract class Clip(val frameRange: IntRange,
-                    val frameRate: Float,
-                    val peakAmplitude: Short) {
-
-    abstract fun waveform(): ShortArray
-}
-
-abstract class Periodic(frameRange: IntRange,
-                        frameRate: Float,
-                        peakAmplitude: Short,
-                        val frequency: Float) : Clip(frameRange, frameRate, peakAmplitude)
-
-class Sinusoid(frameRange: IntRange,
-               frameRate: Float,
-               peakAmplitude: Short,
-               frequency: Float) : Periodic(frameRange, frameRate, peakAmplitude, frequency) {
+class Clip(val frameRange: IntRange,
+           val frameRate: Float,
+           val peakAmplitude: Short,
+           val frequency: Float,
+           val waveformType: WaveformType) {
 
     private val waveform: ShortArray
 
     init {
-        waveform = frameRange
+        waveform = when (waveformType) {
+            WaveformType.SINUSOID -> makeSinusoid(frameRange, frameRate, frequency, peakAmplitude)
+            WaveformType.SQUARE -> makeSquare(frameRange, frameRate, frequency, peakAmplitude)
+            WaveformType.SAW -> makeSaw(frameRange, frameRate, frequency, peakAmplitude)
+        }
+    }
+
+    fun waveform(): ShortArray {
+        return waveform;
+    }
+
+    fun copy(frameRange: IntRange = this.frameRange,
+             frameRate: Float = this.frameRate,
+             peakAmplitude: Short = this.peakAmplitude,
+             frequency: Float = this.frequency,
+             waveformType: WaveformType = this.waveformType): Clip {
+        return Clip(frameRange, frameRate, peakAmplitude, frequency, waveformType)
+    }
+
+    private fun makeSinusoid(frameRange: IntRange, frameRate: Float, frequency: Float, peakAmplitude: Short): ShortArray {
+        return frameRange
                 .map {
                     // start from 0
                     val radians = (it - frameRange.start) / frameRate * frequency * TWO_PI
@@ -48,66 +57,20 @@ class Sinusoid(frameRange: IntRange,
                 }.toShortArray()
     }
 
-    override fun waveform(): ShortArray {
-        return waveform
-    }
-
-    fun copy(frameRange: IntRange = this.frameRange,
-             frameRate: Float = this.frameRate,
-             peakAmplitude: Short = this.peakAmplitude,
-             frequency: Float = this.frequency): Sinusoid = Sinusoid(frameRange, frameRate, peakAmplitude, frequency)
-
-}
-
-class Square(frameRange: IntRange,
-             frameRate: Float,
-             peakAmplitude: Short,
-             frequency: Float) : Periodic(frameRange, frameRate, peakAmplitude, frequency) {
-
-    private val waveform: ShortArray
-
-    init {
-        waveform = frameRange
-                .map {
-                    val radians = (it - frameRange.start) / frameRate * frequency * TWO_PI
-                    val remRads = radians.rem(TWO_PI)
-                    if (remRads < Math.PI) peakAmplitude else (-peakAmplitude).toShort()
-                }.toShortArray()
-    }
-
-    override fun waveform(): ShortArray {
-        return waveform
-    }
-
-    fun copy(frameRange: IntRange = this.frameRange,
-             frameRate: Float = this.frameRate,
-             peakAmplitude: Short = this.peakAmplitude,
-             frequency: Float = this.frequency): Square = Square(frameRange, frameRate, peakAmplitude, frequency)
-
-}
-
-class Saw(frameRange: IntRange,
-          frameRate: Float,
-          peakAmplitude: Short,
-          frequency: Float) : Periodic(frameRange, frameRate, peakAmplitude, frequency) {
-
-    private val waveform: ShortArray
-
-    init {
-        waveform = frameRange
+    private fun makeSaw(frameRange: IntRange, frameRate: Float, frequency: Float, peakAmplitude: Short): ShortArray {
+        return frameRange
                 .map {
                     val period = (it - frameRange.start).rem(frameRate / frequency)
                     ((2 * peakAmplitude * frequency) * (period / frameRate) - peakAmplitude).toShort()
                 }.toShortArray()
     }
 
-    override fun waveform(): ShortArray {
-        return waveform
+    private fun makeSquare(frameRange: IntRange, frameRate: Float, frequency: Float, peakAmplitude: Short): ShortArray {
+        return frameRange
+                .map {
+                    val radians = (it - frameRange.start) / frameRate * frequency * TWO_PI
+                    val remRads = radians.rem(TWO_PI)
+                    if (remRads < Math.PI) peakAmplitude else (-peakAmplitude).toShort()
+                }.toShortArray()
     }
-
-    fun copy(frameRange: IntRange = this.frameRange,
-             frameRate: Float = this.frameRate,
-             peakAmplitude: Short = this.peakAmplitude,
-             frequency: Float = this.frequency): Saw = Saw(frameRange, frameRate, peakAmplitude, frequency)
-
 }

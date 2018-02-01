@@ -1,6 +1,6 @@
 package com.petertackage.geneticsound.fitness
 
-import com.petertackage.geneticsound.sumExact
+import com.petertackage.geneticsound.sumExactOrClip
 
 class AmplitudeDiffFitnessFunction : FitnessFunction {
 
@@ -9,7 +9,7 @@ class AmplitudeDiffFitnessFunction : FitnessFunction {
     // the population is unfit.
     override fun compare(target: ShortArray, proposed: ShortArray): Long {
         return proposed.mapIndexed { index, proposedFrame -> calculateDiff(target[index], proposedFrame).toLong() }
-                .sumExact()
+                .sumExactOrClip()
     }
 
     private fun calculateDiff(targetFrame: Short, proposedFrame: Short): Int {

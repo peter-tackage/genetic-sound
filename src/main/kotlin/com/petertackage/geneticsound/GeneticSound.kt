@@ -5,7 +5,7 @@ import com.petertackage.geneticsound.crossover.UniformZipperCrossOver
 import com.petertackage.geneticsound.fitness.AmplitudeDiffFitnessFunction
 import com.petertackage.geneticsound.fitness.FitnessFunction
 import com.petertackage.geneticsound.genetics.Clip
-import com.petertackage.geneticsound.genetics.ClipType
+import com.petertackage.geneticsound.genetics.WaveformType
 import com.petertackage.geneticsound.genetics.Individual
 import com.petertackage.geneticsound.genetics.Pool
 import com.petertackage.geneticsound.mutation.MutationProbability
@@ -29,9 +29,9 @@ import kotlin.system.measureTimeMillis
 
 fun main(args: Array<String>) {
     GeneticSound(filename = args[0],
-            populationCount = 50,
-            geneCount = 100,
-            supportedClipTypes = arrayOf(ClipType.SINUSOID, ClipType.SQUARE, ClipType.SAW),
+            populationCount = 500,
+            geneCount = 10,
+            supportedClipTypes = arrayOf(WaveformType.SINUSOID, WaveformType.SQUARE, WaveformType.SAW),
             fitnessFunction = AmplitudeDiffFitnessFunction(),
             selector = RankSelector(bias = 0.4),
             mutator = Mutator(),
@@ -42,7 +42,7 @@ fun main(args: Array<String>) {
 class GeneticSound(val filename: String,
                    val geneCount: Int,
                    val populationCount: Int,
-                   val supportedClipTypes: Array<ClipType>,
+                   val supportedClipTypes: Array<WaveformType>,
                    val fitnessFunction: FitnessFunction,
                    val selector: Selector,
                    val crossOver: CrossOver,
@@ -173,8 +173,7 @@ class GeneticSound(val filename: String,
     private fun buildNextGeneration(population: List<Individual<Clip>>, fitnessStats: DescriptiveStatistics, pool: Pool): List<Individual<Clip>> {
         val mutationProbability = VarianceMutationProbability(fitnessStats,
                 minProbability = 0.01F,
-                maxProbability = 0.10F,
-                cvThresholdPercent = 1.0F)
+                maxProbability = 0.10F)
         val populationByFitness = population.sortedBy { it.fitness }
         return runBlocking {
             // Fitness is sorted in descending order - fittest items are first.
@@ -223,18 +222,6 @@ class GeneticSound(val filename: String,
         // Average of existing merged values
         // use Int before division to give 32 bits, which is 16 bits more headroom than Short
         return ((audioCanvasSample + clipSample.toInt()) / 2).toShort()
-    }
-
-    private fun DoubleArray.sd(): Double {
-        return DescriptiveStatistics(this).standardDeviation
-    }
-
-    private fun DoubleArray.avg(): Double {
-        return DescriptiveStatistics(this).mean
-    }
-
-    private fun DescriptiveStatistics.coefficientOfVariance(): Double {
-        return (this.standardDeviation / this.mean) * 100
     }
 
 }

@@ -1,6 +1,6 @@
 # genetic-sound
 
-An ongoing experiment in synthetic audio reproduction using genetic algorithms.
+An ongoing experiment in synthetic audio reproduction using genetic algorithms and additive synthesis.
 
 The synthesis is primarily aimed at reproducing the sounds of musical instruments.
 
@@ -103,28 +103,16 @@ Currently only mutates sinusoids by changing either:
 ### Waveforms
 
  - SINUSOID
- - TRIANGLE (TODO)
- - SQUARE (TODO)
- - NOISE (TODO)
- - DC (TODO)
- 
-### Amplitude Modulation
-
- - SWELL (TODO)
- - DECAY (TODO)
- - SINUSOID (TODO)
- - NONE 
+ - SQUARE
+ - SAWTOOTH
  
 # Discussion Points and Problems
 
 - Blank vs merging canvas
     - Merging makes discovery difficult.  
-- Population vs gene size
-    - What are the tradeoffs in having many individuals with only a few genes or only a few individuals with many genes?
 - Mutation rates
     - Convergence vs divergence. Local/Global maximum. Stability
-    - Trial: make mutation rate a function of generation number.
-        - The higher the generation number, the lower the mutation rate.
+    - Trial: make mutation rate a function of generation number: the higher the generation number, the lower the mutation rate.
 - Selection
 - Elitism
     - Is better than average actually elite - should the elite group be smaller?
@@ -152,13 +140,29 @@ Currently only mutates sinusoids by changing either:
 - Use a "step size" for the Fitness function to improve performance
     - Accuracy cost?
     - Step size Nyguist frequency?
-- Trial enforcing minumum lengths for the clips?
+- Does individual fitness actually make sense when its fitness is dependent on those waveforms expressed before it?
+    - Is the current actually only proposing a single solution, because each individual cannot be treated in isolation?
+    - Wouldn't the last expressed Individual's fitness be the best indicator of population fitness?
+    - Perhaps the population could instead be used to create independent collections of Individuals which are treated as solutions.
+        - Could then have multiple solutions which could be independently evolved.
+
+## Answered Questions
+
+- Question: Why does the best fitness go backwards for a between generation?
+    - Answer: Because it may have been affected by individuals which are expressed before them.
+
+- Question: What are the trade-offs in having many individuals with only a few genes or only a few individuals with many genes?
+    - Initial testing results indicate that in my case, more individuals with fewer genes gives better results.
+        - I suspect this is because individuals are less resilient, therefore can be more easily removed from the population if they have a bad gene.
+        - Stability for relatively high fitness individuals can be controlled through elitism.
+        - High gene counts also make it difficult for the algorithm to optimize specific areas, such as silence.
+
+## Trials TODO
+
+- Trial enforcing minimum lengths for the clips?
 - Trial generating clips as a single cycle/buffer and repeating, rather than calculating.
     - This could reduce the time to generate a population.
-- What is a good mixture of waveform types?
-- Why does the best fitness go backwards for a given generation?
-    - Because it may have been affected by individuals which are expressed before them.
-
+    
 # Helpful Info
 
 ## Genetic Algorithms

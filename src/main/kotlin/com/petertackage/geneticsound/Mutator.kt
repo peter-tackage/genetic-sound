@@ -1,6 +1,7 @@
 package com.petertackage.geneticsound
 
-import com.petertackage.geneticsound.genetics.*
+import com.petertackage.geneticsound.genetics.Clip
+import com.petertackage.geneticsound.genetics.Pool
 import java.util.*
 
 class Mutator {
@@ -8,41 +9,17 @@ class Mutator {
     private val random = Random()
 
     fun mutate(gene: Clip, probability: Float, pool: Pool): Clip {
-        if (random.nextFloat() > probability) return gene
-        return when (gene) {
-            is Sinusoid -> mutateSinusoid(gene, pool)
-            is Square -> mutateSquare(gene, pool)
-            is Saw -> mutateSaw(gene, pool)
-            else -> throw IllegalArgumentException("Mutation not supported for: $gene")
-        }
+        return if (random.nextFloat() > probability) gene
+        else mutate(gene, pool)
     }
 
-    private fun mutateSinusoid(clip: Sinusoid, pool: Pool): Sinusoid {
+    private fun mutate(clip: Clip, pool: Pool): Clip {
         // Copy the genes so that mutations don't affect parent!
-        return when (random.nextInt(3)) {
+        return when (random.nextInt(4)) {
             0 -> clip.copy(frequency = pool.randomFrequency())
             1 -> clip.copy(frameRange = pool.randomFrameRange())
             2 -> clip.copy(peakAmplitude = pool.randomPeakAmplitude())
-            else -> throw Exception("Got bad random")
-        }
-    }
-
-    private fun mutateSquare(clip: Square, pool: Pool): Square {
-        // Copy the genes so that mutations don't affect parent!
-        return when (random.nextInt(3)) {
-            0 -> clip.copy(frequency = pool.randomFrequency())
-            1 -> clip.copy(frameRange = pool.randomFrameRange())
-            2 -> clip.copy(peakAmplitude = pool.randomPeakAmplitude())
-            else -> throw Exception("Got bad random")
-        }
-    }
-
-    private fun mutateSaw(clip: Saw, pool: Pool): Saw {
-        // Copy the genes so that mutations don't affect parent!
-        return when (random.nextInt(3)) {
-            0 -> clip.copy(frequency = pool.randomFrequency())
-            1 -> clip.copy(frameRange = pool.randomFrameRange())
-            2 -> clip.copy(peakAmplitude = pool.randomPeakAmplitude())
+            3 -> clip.copy(waveformType = pool.randomWaveformType())
             else -> throw Exception("Got bad random")
         }
     }
