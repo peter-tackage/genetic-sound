@@ -1,4 +1,4 @@
-package com.petertackage.geneticsound
+package com.petertackage.geneticsound.fitness
 
 import kotlinx.coroutines.experimental.CommonPool
 import kotlinx.coroutines.experimental.async

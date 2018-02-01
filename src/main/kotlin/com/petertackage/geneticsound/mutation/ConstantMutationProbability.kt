@@ -1,4 +1,4 @@
-package com.petertackage.geneticsound
+package com.petertackage.geneticsound.mutation
 
 class ConstantMutationProbability(val probability: Float) : MutationProbability {
     override fun next(): Float {

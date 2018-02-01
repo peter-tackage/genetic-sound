@@ -123,6 +123,8 @@ Currently only mutates sinusoids by changing either:
     - What are the tradeoffs in having many individuals with only a few genes or only a few individuals with many genes?
 - Mutation rates
     - Convergence vs divergence. Local/Global maximum. Stability
+    - Trial: make mutation rate a function of generation number.
+        - The higher the generation number, the lower the mutation rate.
 - Selection
 - Elitism
     - Is better than average actually elite - should the elite group be smaller?
@@ -144,6 +146,29 @@ Currently only mutates sinusoids by changing either:
 - Use of spectral analysis to calculate better fitness results.
 - Effective use of Kotlin coroutines.
     - Reward vs overhead - where should they be used?
-- Fitness function calculates the absolute total sum different between the target and individual. Perhaps this should be 0.0 <= f <= 1.0 and only consider the range of the individual being added. Then weight this for the percentage of range that the individual occupies
+- ~~Fitness function calculates the absolute total sum different between the target and individual. Perhaps this should be 0.0 <= f <= 1.0 and only consider the range of the individual being added. Then weight this for the percentage of range that the individual occupies.~~
+    - That idea won't work at an "Individual", because they are made up of many (possibly overlapping clips) and fitness is evaluated for Individuals, not Clips.
+    - Could instead factor in the total length of clips for the individual against the total diff
 - Use a "step size" for the Fitness function to improve performance
     - Accuracy cost?
+    - Step size Nyguist frequency?
+- Trial enforcing minumum lengths for the clips?
+- Trial generating clips as a single cycle/buffer and repeating, rather than calculating.
+    - This could reduce the time to generate a population.
+- What is a good mixture of waveform types?
+- Why does the best fitness go backwards for a given generation?
+    - Because it may have been affected by individuals which are expressed before them.
+
+# Helpful Info
+
+## Genetic Algorithms
+
+## Synthesizing Audio
+
+- Frame rate is equivalent to sample rate, but includes the concept of a frame, rather than individual samples. 
+    - A frame contains all the data required to express the audio at a given instance.
+    - For mono, 16 bit audio as used the frame size is 2 bytes.
+
+- A good introduction to digital audio synthesis: http://evanxmerz.com/soundsynthjava/Sound_Synth_Java.html
+- http://www.cim.mcgill.ca/%7Eclark/nordmodularbook/nm_book_toc.html
+- https://www.soundonsound.com/techniques/synth-secrets

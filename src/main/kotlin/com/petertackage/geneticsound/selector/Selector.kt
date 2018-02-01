@@ -1,4 +1,4 @@
-package com.petertackage.geneticsound
+package com.petertackage.geneticsound.selector
 
 import com.petertackage.geneticsound.genetics.Clip
 import com.petertackage.geneticsound.genetics.Individual

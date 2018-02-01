@@ -1,11 +1,12 @@
 package com.petertackage.geneticsound.genetics
 
+import com.petertackage.geneticsound.Context
 import kotlinx.coroutines.experimental.CommonPool
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.runBlocking
 import java.util.*
 
-class Pool(val context: com.petertackage.geneticsound.Context) {
+class Pool(val context: Context) {
 
     private val random = Random()
 
@@ -26,14 +27,25 @@ class Pool(val context: com.petertackage.geneticsound.Context) {
 
     fun newClip(): Clip {
         val clipIndex = random.nextInt(context.supportedClipTypes.size)
-        return when (context.supportedClipTypes.get(clipIndex)) {
+        val clipType = context.supportedClipTypes.get(clipIndex)
+        return when (clipType) {
             ClipType.SINUSOID -> newSinusoidClip()
-            else -> newSinusoidClip() // TODO Add Clip types later
+            ClipType.SQUARE -> newSquareClip()
+            ClipType.SAW -> newSawtoothClip()
+            else -> throw IllegalArgumentException("New not supported for $clipType")
         }
     }
 
     private fun newSinusoidClip(): Sinusoid {
-        return Sinusoid(randomFrameRange(), context.frameRate, randomPeakAmplitude(), 0, randomFrequency())
+        return Sinusoid(randomFrameRange(), context.frameRate, randomPeakAmplitude(), randomFrequency())
+    }
+
+    private fun newSquareClip(): Square {
+        return Square(randomFrameRange(), context.frameRate, randomPeakAmplitude(), randomFrequency())
+    }
+
+    private fun newSawtoothClip(): Saw {
+        return Saw(randomFrameRange(), context.frameRate, randomPeakAmplitude(), randomFrequency())
     }
 
     fun randomFrameRange(): IntRange {
@@ -49,12 +61,21 @@ class Pool(val context: com.petertackage.geneticsound.Context) {
         return random.nextInt(Short.MAX_VALUE.toInt()).toShort()
     }
 
+    // TODO This could be split up into different mutators
     fun randomFrequency(): Float {
         // Max frequency produced should be limited by Nyquist frequency (1/2 sample rate)
         // That is not strictly enforced here.
-        val octave = random.nextInt(4)
         val note = Note.values()[random.nextInt(Note.values().lastIndex)]
-        return (note.frequency * Math.pow(2.0, octave.toDouble())).toFloat()
+
+        // Flip a coin
+        if(random.nextBoolean()) {
+            val octave = random.nextInt(8) // G# with 8th Octave to 13 kHz.
+            return (note.frequency * Math.pow(2.0, octave.toDouble())).toFloat()
+        } else {
+            // G# with 351 harmonic is ~18 kHz.
+            val harmonic = random.nextInt(350) + 1
+            return (note.frequency * harmonic)
+        }
     }
 
 }

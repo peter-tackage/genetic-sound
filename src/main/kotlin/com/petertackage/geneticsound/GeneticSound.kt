@@ -1,9 +1,17 @@
 package com.petertackage.geneticsound
 
+import com.petertackage.geneticsound.crossover.CrossOver
+import com.petertackage.geneticsound.crossover.UniformZipperCrossOver
+import com.petertackage.geneticsound.fitness.AmplitudeDiffFitnessFunction
+import com.petertackage.geneticsound.fitness.FitnessFunction
 import com.petertackage.geneticsound.genetics.Clip
 import com.petertackage.geneticsound.genetics.ClipType
 import com.petertackage.geneticsound.genetics.Individual
 import com.petertackage.geneticsound.genetics.Pool
+import com.petertackage.geneticsound.mutation.MutationProbability
+import com.petertackage.geneticsound.mutation.VarianceMutationProbability
+import com.petertackage.geneticsound.selector.RankSelector
+import com.petertackage.geneticsound.selector.Selector
 import kotlinx.coroutines.experimental.CommonPool
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.runBlocking
@@ -21,9 +29,9 @@ import kotlin.system.measureTimeMillis
 
 fun main(args: Array<String>) {
     GeneticSound(filename = args[0],
-            populationCount = 100,
+            populationCount = 50,
             geneCount = 100,
-            supportedClipTypes = arrayOf(ClipType.SINUSOID),
+            supportedClipTypes = arrayOf(ClipType.SINUSOID, ClipType.SQUARE, ClipType.SAW),
             fitnessFunction = AmplitudeDiffFitnessFunction(),
             selector = RankSelector(bias = 0.4),
             mutator = Mutator(),
@@ -93,7 +101,6 @@ class GeneticSound(val filename: String,
 
         val pool = Pool(Context(audioFileFormat.frameLength,
                 audioFileFormat.format.frameRate,
-                audioFileFormat.format.encoding,
                 geneCount,
                 populationCount,
                 supportedClipTypes))
@@ -101,7 +108,7 @@ class GeneticSound(val filename: String,
         // New random population
         var population: List<Individual<Clip>> = measure("Population creation") { pool.newPopulation() }
         var generation = 0
-        var allTimeBest = Long.MAX_VALUE;
+        var allTimeBest = Double.MAX_VALUE;
 
         do {
 
@@ -112,19 +119,21 @@ class GeneticSound(val filename: String,
                 renderAndAssignFitness(targetShortArray, audioCanvas, population)
             }
 
-            val best = population.sortedBy { it.fitness }.first().fitness
+            // Average fitness, SD, delta
+            val fitnessStats = population
+                    .map { it.fitness.toDouble() }
+                    .toDoubleArray()
+                    .let { DescriptiveStatistics(it) }
+
+            val best = fitnessStats.min
             if (best < allTimeBest) allTimeBest = best
 
-            // Average fitness, SD, delta
-            val populationFitness: DoubleArray = population.map { it.fitness.toDouble() }.toDoubleArray()
-            val fitnessStats = DescriptiveStatistics(populationFitness)
-
             // Logging
-            println("$generation ${best} ${allTimeBest} ${fitnessStats.mean} ${fitnessStats.standardDeviation} ${fitnessStats.coefficientOfVariance()} $duration")
+            println("gen: $generation best: ${best} all-time: ${allTimeBest} mean: ${fitnessStats.mean} sd: ${fitnessStats.standardDeviation} cv:${fitnessStats.coefficientOfVariance()} time: $duration")
 
             writeToFile(audioCanvas, audioFileFormat)
 
-            // Change the population
+            // Build the next generation of the population
             population = buildNextGeneration(population, fitnessStats, pool)
             generation++
 
@@ -163,32 +172,24 @@ class GeneticSound(val filename: String,
 
     private fun buildNextGeneration(population: List<Individual<Clip>>, fitnessStats: DescriptiveStatistics, pool: Pool): List<Individual<Clip>> {
         val mutationProbability = VarianceMutationProbability(fitnessStats,
-                baseProbability = 0.01F,
+                minProbability = 0.01F,
                 maxProbability = 0.10F,
                 cvThresholdPercent = 1.0F)
-        return measure("buildNextGen") {
-            runBlocking {
-                // Fitness is sorted in descending order - fittest items are first.
-                population
-                        .map { async(CommonPool) { retainOrReplace(it, population.sortedBy { it.fitness }, mutationProbability.next(), pool) } }
-                        .map { it.await() }
-            }
+        val populationByFitness = population.sortedBy { it.fitness }
+        return runBlocking {
+            // Fitness is sorted in descending order - fittest items are first.
+            population
+                    .map { async(CommonPool) { retainOrReplace(it, populationByFitness, mutationProbability, pool) } }
+                    .map { it.await() }
         }
-
-//        return measure("buildNextGen") {
-//            population
-//                    .map { retainOrReplace(it, population.sortedBy { it.fitness }, mutationProbability.next(), pool) }
-//        }
-
     }
 
-    private fun retainOrReplace(individual: Individual<Clip>, populationByFitness: List<Individual<Clip>>, mutationProbability: Float, pool: Pool): Individual<Clip> {
+    private fun retainOrReplace(individual: Individual<Clip>, populationByFitness: List<Individual<Clip>>, mutationProbability: MutationProbability, pool: Pool): Individual<Clip> {
         return if (isElite(individual, populationByFitness)) individual // elitism
         else {
             val one = selector.select(populationByFitness)
             val two = selector.select(populationByFitness) // hmm could selector same as `one`. weird.
-
-            crossOver.perform(Pair(one, two), mutator, mutationProbability, pool)
+            crossOver.perform(Pair(one, two), mutator, mutationProbability.next(), pool)
         }
     }
 
@@ -202,25 +203,26 @@ class GeneticSound(val filename: String,
         }
     }
 
-    private fun isElite(individual: Individual<Clip>, population: List<Individual<Clip>>): Boolean {
-        val avgFitness = population.map { it.fitness }.average()
+    private fun isElite(individual: Individual<Clip>, populationByFitness: List<Individual<Clip>>): Boolean {
+        val avgFitness = populationByFitness.map { it.fitness }.average()
         // Lower fitness is better!!!!
         return individual.fitness < avgFitness
     }
 
     private fun expressIndividual(audioCanvas: ShortArray, individual: Individual<Clip>) {
         individual.dna.forEach { clip ->
-            clip.waveform().forEachIndexed { frameIndex, clipShort ->
-                val audioCanvasIndex = clip.frameRange.start + frameIndex
-                val merged = mergeAudio(audioCanvas, audioCanvasIndex, clipShort)
+            clip.waveform().forEachIndexed { frameOffsetIndex, clipSample ->
+                val audioCanvasIndex = clip.frameRange.start + frameOffsetIndex
+                val merged = mergeAudio(audioCanvas.get(audioCanvasIndex), clipSample)
                 audioCanvas[audioCanvasIndex] = merged
             }
         }
     }
 
-    private fun mergeAudio(audioCanvas: ShortArray, audioCanvasIndex: Int, clipShort: Short): Short {
+    private fun mergeAudio(audioCanvasSample: Short, clipSample: Short): Short {
         // Average of existing merged values
-        return ((audioCanvas[audioCanvasIndex] + clipShort.toInt()) / 2).toShort() // use Int to give 32 bits, which is 16 bits more headroom than Short
+        // use Int before division to give 32 bits, which is 16 bits more headroom than Short
+        return ((audioCanvasSample + clipSample.toInt()) / 2).toShort()
     }
 
     private fun DoubleArray.sd(): Double {
