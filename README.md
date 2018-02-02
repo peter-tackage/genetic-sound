@@ -142,9 +142,11 @@ Currently only mutates sinusoids by changing either:
     - Step size Nyguist frequency?
 - Does individual fitness actually make sense when its fitness is dependent on those waveforms expressed before it?
     - Is the current actually only proposing a single solution, because each individual cannot be treated in isolation?
-    - Wouldn't the last expressed Individual's fitness be the best indicator of population fitness?
+    - The problem is we are effectively only coming up with a single solution each generation.
+    - The expressing of each individual should be done in isolation from each other - new target canvas each time.
+    - Curerntly, wouldn't the last expressed Individual's fitness be the best indicator of population fitness?
     - Perhaps the population could instead be used to create independent collections of Individuals which are treated as solutions.
-        - Could then have multiple solutions which could be independently evolved.
+        - Could then have multiple solutions which could be independently evolved: each Individual self-contains an additive synthesis solution using the clips defined in its genes.
 
 ## Answered Questions
 
@@ -162,6 +164,7 @@ Currently only mutates sinusoids by changing either:
 - Trial enforcing minimum lengths for the clips?
 - Trial generating clips as a single cycle/buffer and repeating, rather than calculating.
     - This could reduce the time to generate a population.
+- Trial using a selector weighted by actual fitness, not by rank. Standout Individuals should be preferred.
     
 # Helpful Info
 

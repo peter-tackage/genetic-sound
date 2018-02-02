@@ -5,9 +5,9 @@ import com.petertackage.geneticsound.crossover.UniformZipperCrossOver
 import com.petertackage.geneticsound.fitness.AmplitudeDiffFitnessFunction
 import com.petertackage.geneticsound.fitness.FitnessFunction
 import com.petertackage.geneticsound.genetics.Clip
-import com.petertackage.geneticsound.genetics.WaveformType
 import com.petertackage.geneticsound.genetics.Individual
 import com.petertackage.geneticsound.genetics.Pool
+import com.petertackage.geneticsound.genetics.WaveformType
 import com.petertackage.geneticsound.mutation.MutationProbability
 import com.petertackage.geneticsound.mutation.VarianceMutationProbability
 import com.petertackage.geneticsound.selector.RankSelector
@@ -29,7 +29,7 @@ import kotlin.system.measureTimeMillis
 
 fun main(args: Array<String>) {
     GeneticSound(filename = args[0],
-            populationCount = 500,
+            populationCount = 100,
             geneCount = 10,
             supportedClipTypes = arrayOf(WaveformType.SINUSOID, WaveformType.SQUARE, WaveformType.SAW),
             fitnessFunction = AmplitudeDiffFitnessFunction(),
@@ -108,15 +108,12 @@ class GeneticSound(val filename: String,
         // New random population
         var population: List<Individual<Clip>> = measure("Population creation") { pool.newPopulation() }
         var generation = 0
-        var allTimeBest = Double.MAX_VALUE;
 
         do {
 
-            val audioCanvas: ShortArray = ShortArray(audioFileFormat.frameLength).apply { fill(0) }
-
             // Assigns the fitness to each individual
             val duration = measureTimeMillis {
-                renderAndAssignFitness(targetShortArray, audioCanvas, population)
+                renderAndAssignFitness(targetShortArray, population)
             }
 
             // Average fitness, SD, delta
@@ -126,12 +123,25 @@ class GeneticSound(val filename: String,
                     .let { DescriptiveStatistics(it) }
 
             val best = fitnessStats.min
-            if (best < allTimeBest) allTimeBest = best
+            val worst = fitnessStats.max
 
             // Logging
-            println("gen: $generation best: ${best} all-time: ${allTimeBest} mean: ${fitnessStats.mean} sd: ${fitnessStats.standardDeviation} cv:${fitnessStats.coefficientOfVariance()} time: $duration")
+            println("gen: $generation best: ${best} worst: ${worst} mean: ${fitnessStats.mean} sd: ${fitnessStats.standardDeviation} cv:${fitnessStats.coefficientOfVariance()} time: $duration")
 
-            writeToFile(audioCanvas, audioFileFormat)
+            // Render the best one to file
+            val sortedByFitness = population.sortedBy { it.fitness }
+
+            newAudioCanvas(audioFileFormat.frameLength).apply {
+                val fittest = sortedByFitness.first()
+                expressIndividual(this, fittest)
+                writeToFile(this, audioFileFormat, "fittest")
+            }
+
+            newAudioCanvas(audioFileFormat.frameLength).apply {
+                val least = sortedByFitness.last()
+                expressIndividual(this, least)
+                writeToFile(this, audioFileFormat, "least")
+            }
 
             // Build the next generation of the population
             population = buildNextGeneration(population, fitnessStats, pool)
@@ -141,14 +151,17 @@ class GeneticSound(val filename: String,
 
     }
 
-    private fun writeToFile(audioCanvas: ShortArray, audioFileFormat: AudioFileFormat) {
+    private fun newAudioCanvas(frameLength: Int) =
+            ShortArray(frameLength).apply { fill(0) }
+
+    private fun writeToFile(audioCanvas: ShortArray, audioFileFormat: AudioFileFormat, tag: String) {
         val buffer = ByteBuffer.allocate(audioCanvas.size * 2)
         buffer.order(ByteOrder.BIG_ENDIAN).asShortBuffer().put(audioCanvas) // ByteBuffer is big-endian by default, but be explicit.
         val bytes = buffer.array()
-        writeToFile(audioFileFormat, bytes)
+        writeToFile(audioFileFormat, bytes, tag)
     }
 
-    private fun writeToFile(audioFileFormat: AudioFileFormat, bytes: ByteArray) {
+    private fun writeToFile(audioFileFormat: AudioFileFormat, bytes: ByteArray, tag: String) {
         val outputAudioFormat = AudioFormat(
                 audioFileFormat.format.frameRate,
                 audioFileFormat.format.sampleSizeInBits,
@@ -162,7 +175,7 @@ class GeneticSound(val filename: String,
                 outputAudioFormat,
                 (bytes.size / 2).toLong())
 
-        val file = File(filename.split(".").first() + "-evolved.wav")
+        val file = File(filename.split(".").first() + "-evolved-$tag.wav")
 
         AudioSystem.write(
                 audioInputStream,
@@ -177,8 +190,7 @@ class GeneticSound(val filename: String,
         val populationByFitness = population.sortedBy { it.fitness }
         return runBlocking {
             // Fitness is sorted in descending order - fittest items are first.
-            population
-                    .map { async(CommonPool) { retainOrReplace(it, populationByFitness, mutationProbability, pool) } }
+            population.map { async(CommonPool) { retainOrReplace(it, populationByFitness, mutationProbability, pool) } }
                     .map { it.await() }
         }
     }
@@ -193,10 +205,11 @@ class GeneticSound(val filename: String,
     }
 
     private fun renderAndAssignFitness(target: ShortArray,
-                                       audioCanvas: ShortArray,
                                        population: List<Individual<Clip>>) {
         // ####### Note: expressing take ~30ms, comparison ~3ms. #######
         population.forEach { individual ->
+            // New canvas for each individual, express then evaluate.
+            val audioCanvas = newAudioCanvas(target.size)
             expressIndividual(audioCanvas, individual)
             individual.fitness = fitnessFunction.compare(target, audioCanvas)
         }
@@ -208,17 +221,19 @@ class GeneticSound(val filename: String,
         return individual.fitness < avgFitness
     }
 
-    private fun expressIndividual(audioCanvas: ShortArray, individual: Individual<Clip>) {
+    // Mutates the audio canvas.
+    private fun expressIndividual(audioCanvas: ShortArray, individual: Individual<Clip>): ShortArray {
         individual.dna.forEach { clip ->
             clip.waveform().forEachIndexed { frameOffsetIndex, clipSample ->
                 val audioCanvasIndex = clip.frameRange.start + frameOffsetIndex
-                val merged = mergeAudio(audioCanvas.get(audioCanvasIndex), clipSample)
-                audioCanvas[audioCanvasIndex] = merged
+                val mergedFrame = mergeAudioFrame(audioCanvas.get(audioCanvasIndex), clipSample)
+                audioCanvas[audioCanvasIndex] = mergedFrame
             }
         }
+        return audioCanvas
     }
 
-    private fun mergeAudio(audioCanvasSample: Short, clipSample: Short): Short {
+    private fun mergeAudioFrame(audioCanvasSample: Short, clipSample: Short): Short {
         // Average of existing merged values
         // use Int before division to give 32 bits, which is 16 bits more headroom than Short
         return ((audioCanvasSample + clipSample.toInt()) / 2).toShort()
